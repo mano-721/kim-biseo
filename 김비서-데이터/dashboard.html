@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>서만호 비서</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:        #080c18;
+      --surface:   #0d1528;
+      --surface2:  #111d38;
+      --border:    #1b2d52;
+      --accent:    #3b82f6;
+      --accent2:   #38bdf8;
+      --warn:      #f87171;
+      --yellow:    #fbbf24;
+      --text:      #dde6f8;
+      --muted:     #6278a8;
+      --radius:    12px;
+    }
+    html.light {
+      --bg:        #eef3ff;
+      --surface:   #ffffff;
+      --surface2:  #e2eaff;
+      --border:    #c5d3f5;
+      --accent:    #2563eb;
+      --accent2:   #0ea5e9;
+      --warn:      #ef4444;
+      --yellow:    #d97706;
+      --text:      #0f172a;
+      --muted:     #5c6f9a;
+    }
+    html.light .task-item:hover { background: #d8e4ff; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      padding: 28px 24px;
+    }
+
+    /* ── 헤더 ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+    .header-left h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .header-left p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+    .date-badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .date-badge span {
+      color: var(--accent2);
+      font-weight: 600;
+    }
+
+    /* ── 요약 카드 ── */
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+    }
+    .summary-card .label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    .summary-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+    .summary-card .sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .c-accent  { color: var(--accent); }
+    .c-accent2 { color: var(--accent2); }
+    .c-warn    { color: var(--warn); }
+    .c-yellow  { color: var(--yellow); }
+
+    /* ── 메인 그리드 ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      grid-template-rows: auto auto;
+      gap: 20px;
+    }
+    .task-card-full { grid-column: 1 / -1; }
+    .task-list-scroll {
+      max-height: 540px;
+      overflow-y: auto;
+      padding-right: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .task-list-scroll::-webkit-scrollbar { width: 5px; }
+    .task-list-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── 카드 공통 ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+    }
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 14px;
+      border-radius: 2px;
+      background: var(--accent);
+    }
+
+    /* ── 업무 목록 ── */
+    .task-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: background 0.15s;
+      cursor: pointer;
+    }
+    .task-item:hover { background: #162040; }
+    .task-item.done  { opacity: 0.45; }
+
+    /* 커스텀 체크박스 */
+    .task-item input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      min-width: 18px;
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      cursor: pointer;
+      position: relative;
+      margin-top: 1px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .task-item input[type="checkbox"]:checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .task-item input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 4px; top: 1px;
+      width: 5px; height: 9px;
+      border: 2px solid #fff;
+      border-top: none; border-left: none;
+      transform: rotate(45deg);
+    }
+
+    .task-content { flex: 1; min-width: 0; }
+    .task-name {
+      font-size: 0.92rem;
+      font-weight: 500;
+    }
+    .task-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 5px;
+    }
+    .tag {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .tag-high   { background: rgba(255,107,107,0.15); color: var(--warn); }
+    .tag-mid    { background: rgba(255,209,102,0.12); color: var(--yellow); }
+    .tag-low    { background: rgba(124,131,200,0.15); color: #8f96c8; }
+    .tag-cat    { background: rgba(108,99,255,0.12);  color: var(--accent); }
+    .tag-done   { background: rgba(0,212,170,0.12);   color: var(--accent2); }
+    .tag-wip    { background: rgba(255,209,102,0.12); color: var(--yellow); }
+
+    .task-due {
+      margin-left: auto;
+      font-size: 0.72rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .task-due.overdue { color: var(--warn); }
+
+    /* ── 펼침 상세 ── */
+    .task-wrapper {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .task-wrapper .task-item {
+      border: none;
+      border-radius: 0;
+    }
+    .chevron {
+      font-size: 1.1rem;
+      color: var(--muted);
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+      margin-left: 4px;
+      user-select: none;
+    }
+    .task-wrapper.expanded .chevron { transform: rotate(90deg); color: var(--accent); }
+    .task-detail {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      background: var(--bg);
+    }
+    .task-wrapper.expanded .task-detail {
+      max-height: 300px;
+      border-top: 1px solid var(--border);
+    }
+    .detail-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .detail-row { display: flex; gap: 18px; flex-wrap: wrap; }
+    .detail-field { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; }
+    .detail-label { color: var(--muted); font-size: 0.72rem; }
+    .detail-note {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      color: var(--text);
+      resize: none;
+      font-family: inherit;
+      min-height: 52px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .detail-note:focus { border-color: var(--accent); }
+    .detail-note::placeholder { color: var(--muted); }
+
+    /* ── 새 할 일 추가 버튼 ── */
+    .add-task-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      background: transparent;
+      border: 1.5px dashed var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .add-task-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.06); }
+
+    /* ── 모달 ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      width: 460px;
+      max-width: calc(100vw - 40px);
+      animation: modalIn 0.2s ease;
+    }
+    @keyframes modalIn {
+      from { transform: translateY(16px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 20px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .form-field { display: flex; flex-direction: column; gap: 5px; }
+    .form-field.full { grid-column: 1 / -1; }
+    .form-label { font-size: 0.73rem; color: var(--muted); }
+    .form-input, .form-select, .form-textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 0.85rem;
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+    .form-select option { background: var(--surface); color: var(--text); }
+    .form-textarea { resize: vertical; min-height: 68px; }
+    .modal-footer { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+    .btn-cancel {
+      padding: 9px 18px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); font-size: 0.85rem; cursor: pointer;
+    }
+    .btn-cancel:hover { background: var(--surface2); color: var(--text); }
+    .btn-add {
+      padding: 9px 22px; border-radius: 8px; border: none;
+      background: var(--accent); color: #fff;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-add:hover { opacity: 0.88; }
+
+    /* ── 프로젝트 진행률 ── */
+    .project-list { display: flex; flex-direction: column; gap: 16px; }
+
+    .project-item {}
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .project-name { font-size: 0.88rem; font-weight: 600; }
+    .project-pct  { font-size: 0.8rem; color: var(--muted); }
+
+    .bar-track {
+      height: 8px;
+      background: var(--surface2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+    .project-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ── 주간 일정 ── */
+    .schedule-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .day-block {}
+    .day-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .day-label .date-tag {
+      font-size: 0.7rem;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .day-label.today-label { color: var(--accent2); }
+
+    .event-list { display: flex; flex-direction: column; gap: 6px; }
+    .event-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      background: var(--surface2);
+      border-left: 3px solid transparent;
+      border-radius: 8px;
+      font-size: 0.82rem;
+    }
+    .event-time {
+      min-width: 42px;
+      color: var(--muted);
+      font-size: 0.77rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .event-title { flex: 1; }
+
+    .day-block:nth-child(1) .event-item { border-left-color: var(--accent); }
+    .day-block:nth-child(2) .event-item { border-left-color: #e8805a; }
+    .day-block:nth-child(3) .event-item { border-left-color: var(--yellow); }
+    .day-block:nth-child(4) .event-item { border-left-color: var(--accent2); }
+    .day-block:nth-child(5) .event-item { border-left-color: #a78bfa; }
+
+    /* ── 비고 박스 ── */
+    .notes-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 24px;
+      margin-top: 20px;
+    }
+    .note-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.84rem;
+      color: var(--muted);
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .note-item:last-child { border-bottom: none; }
+    .note-item::before { content: '→'; color: var(--accent2); font-weight: 700; }
+
+    /* ── 날씨 바 ── */
+    .weather-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 22px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .weather-main {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .weather-icon { font-size: 2rem; line-height: 1; }
+    .weather-temp {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--accent2);
+      line-height: 1;
+    }
+    .weather-info { display: flex; flex-direction: column; gap: 2px; }
+    .weather-desc { font-size: 0.88rem; font-weight: 600; }
+    .weather-feel { font-size: 0.75rem; color: var(--muted); }
+    .weather-divider {
+      width: 1px; height: 36px;
+      background: var(--border);
+    }
+    .weather-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .weather-chip strong { color: var(--text); font-weight: 600; }
+    .dust-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 4px;
+    }
+    .dust-good   { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .dust-normal { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .dust-bad    { background: rgba(248,113,113,0.15); color: #f87171; }
+    .dust-very   { background: rgba(167,139,250,0.15); color: #a78bfa; }
+    .weather-loc { margin-left: auto; font-size: 0.75rem; color: var(--muted); }
+
+    /* ── 매출 차트 섹션 ── */
+    .chart-section { margin-bottom: 20px; }
+
+    .chart-kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .chart-kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+    }
+    .kpi-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 6px; }
+    .kpi-val   { font-size: 1.25rem; font-weight: 700; }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 16px;
+    }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+    }
+    .chart-card-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chart-total-badge { font-size: 0.75rem; color: var(--accent2); font-weight: 700; letter-spacing:0; }
+
+    /* 도넛 */
+    .donut-wrap { display: flex; align-items: center; gap: 18px; }
+    .donut-canvas-wrap {
+      position: relative;
+      width: 180px; height: 180px;
+      flex-shrink: 0;
+    }
+    .donut-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .donut-center-val { font-size: 1.2rem; font-weight: 700; }
+    .donut-center-sub { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+    .donut-legend { display: flex; flex-direction: column; gap: 9px; flex: 1; min-width: 0; }
+    .legend-item  { display: flex; align-items: center; gap: 8px; font-size: 0.77rem; }
+    .legend-dot   { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .legend-name  { flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .legend-pct   { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+    /* 바 차트 */
+    .bar-canvas-wrap {
+      position: relative;
+      height: 220px;   /* 고정 높이 — 핵심 */
+      width: 100%;
+    }
+
+    @media (max-width: 900px) {
+      .chart-kpi-row { grid-template-columns: repeat(2, 1fr); }
+      .chart-grid    { grid-template-columns: 1fr; }
+    }
+
+    /* ── 워크플로우 다이어그램 ── */
+    .workflow-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 28px 28px;
+      margin-bottom: 20px;
+    }
+    .workflow-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .workflow-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    .workflow-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px; height: 13px;
+      border-radius: 2px;
+      background: var(--accent2);
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .workflow-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      opacity: 0.65;
+    }
+
+    /* ── 테마 토글 버튼 ── */
+    .theme-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .theme-btn:hover { background: var(--border); color: var(--text); }
+    .theme-btn .icon { font-size: 1rem; line-height: 1; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+
+    /* ── 반응형 ── */
+    @media (max-width: 900px) {
+      .summary-row { grid-template-columns: repeat(2, 1fr); }
+      .main-grid   { grid-template-columns: 1fr; }
+      .task-card-full { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>서만호 비서</h1>
+    <p>마케팅팀 · 주간 업무 현황</p>
+  </div>
+  <div class="header-right">
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">
+      <span class="icon">🌙</span> 다크 모드
+    </button>
+    <div class="date-badge">
+      오늘 <span>2026년 4월 7일 (월)</span>
+    </div>
+  </div>
+</header>
+
+<!-- 날씨 -->
+<div class="weather-bar" id="weatherBar">
+  <div class="weather-main">
+    <span class="weather-icon" id="wIcon">⏳</span>
+    <span class="weather-temp" id="wTemp">--°</span>
+    <div class="weather-info">
+      <span class="weather-desc" id="wDesc">날씨 불러오는 중...</span>
+      <span class="weather-feel" id="wFeel"></span>
+    </div>
+  </div>
+  <div class="weather-divider"></div>
+  <div class="weather-chip">
+    미세먼지(PM10) <strong id="wPm10">--</strong> <span id="wPm10Badge"></span>
+  </div>
+  <div class="weather-chip">
+    초미세먼지(PM2.5) <strong id="wPm25">--</strong> <span id="wPm25Badge"></span>
+  </div>
+  <span class="weather-loc" id="wLoc">위치 감지 중...</span>
+</div>
+
+<!-- 요약 카드 -->
+<div class="summary-row">
+  <div class="summary-card">
+    <div class="label">전체 업무</div>
+    <div class="value c-accent">10</div>
+    <div class="sub">업무목록 기준</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">높은 우선순위</div>
+    <div class="value c-warn">5</div>
+    <div class="sub">즉시 처리 필요</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">마감 지연</div>
+    <div class="value c-warn">9</div>
+    <div class="sub">3월 마감일 초과</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">완료</div>
+    <div class="value c-accent2">1</div>
+    <div class="sub">SNS 콘텐츠 업로드</div>
+  </div>
+</div>
+
+<!-- ══ 매출 차트 섹션 ══ -->
+<div class="chart-section">
+
+  <!-- 지표 4개 -->
+  <div class="chart-kpi-row">
+    <div class="chart-kpi">
+      <div class="kpi-label">누적 총 매출</div>
+      <div class="kpi-val" style="color:var(--accent2)">7,100만원</div>
+    </div>
+    <div class="chart-kpi">
+      <div class="kpi-label">1월 매출</div>
+      <div class="kpi-val" style="color:var(--accent)">4,650만원</div>
+    </div>
+    <div class="chart-kpi">
+      <div class="kpi-label">2월 매출 <small style="font-weight:400;font-size:0.7rem;">(집계중)</small></div>
+      <div class="kpi-val" style="color:var(--yellow)">2,451만원</div>
+    </div>
+    <div class="chart-kpi">
+      <div class="kpi-label">TOP 제품</div>
+      <div class="kpi-val" style="color:var(--warn);font-size:0.95rem;">🎧 무선 이어폰</div>
+    </div>
+  </div>
+
+  <!-- 차트 2개 -->
+  <div class="chart-grid">
+
+    <!-- ① 도넛: 제품별 비중 -->
+    <div class="chart-card">
+      <div class="chart-card-title">
+        제품별 매출 비중
+        <span class="chart-total-badge">합계 7,100만원</span>
+      </div>
+      <div class="donut-wrap">
+        <div class="donut-canvas-wrap">
+          <canvas id="donutChart"></canvas>
+          <div class="donut-center">
+            <span class="donut-center-val">6종</span>
+            <span class="donut-center-sub">제품</span>
+          </div>
+        </div>
+        <div class="donut-legend" id="donutLegend"></div>
+      </div>
+    </div>
+
+    <!-- ② 바: 월별 비교 -->
+    <div class="chart-card">
+      <div class="chart-card-title">월별 제품 매출 비교 (만원)</div>
+      <div class="bar-canvas-wrap">
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ 업무 흐름 다이어그램 ══ -->
+<div class="workflow-card">
+  <div class="workflow-header">
+    <span class="workflow-title">팀 업무 흐름</span>
+    <span class="workflow-sub">마케팅팀 표준 프로세스 · 5단계</span>
+  </div>
+
+  <svg viewBox="0 0 860 120" xmlns="http://www.w3.org/2000/svg" width="100%" style="overflow:visible;">
+    <defs>
+      <linearGradient id="wg1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#1d4ed8"/>
+      </linearGradient>
+      <linearGradient id="wg2" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#c084fc"/><stop offset="100%" stop-color="#7c3aed"/>
+      </linearGradient>
+      <linearGradient id="wg3" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#fde68a"/><stop offset="100%" stop-color="#d97706"/>
+      </linearGradient>
+      <linearGradient id="wg4" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#6ee7b7"/><stop offset="100%" stop-color="#059669"/>
+      </linearGradient>
+      <linearGradient id="wg5" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#0284c7"/>
+      </linearGradient>
+      <marker id="wf-arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+        <path d="M1,1.5 L7.5,4.5 L1,7.5 Z" fill="#334e8a"/>
+      </marker>
+    </defs>
+
+    <!-- 배경 트랙 -->
+    <line x1="80" y1="62" x2="780" y2="62" stroke="#1b2d52" stroke-width="2" stroke-dasharray="5,4"/>
+
+    <!-- 연결 화살표 -->
+    <line x1="130" y1="62" x2="199" y2="62" stroke="#334e8a" stroke-width="2.5" marker-end="url(#wf-arr)"/>
+    <line x1="305" y1="62" x2="374" y2="62" stroke="#334e8a" stroke-width="2.5" marker-end="url(#wf-arr)"/>
+    <line x1="480" y1="62" x2="549" y2="62" stroke="#334e8a" stroke-width="2.5" marker-end="url(#wf-arr)"/>
+    <line x1="655" y1="62" x2="724" y2="62" stroke="#334e8a" stroke-width="2.5" marker-end="url(#wf-arr)"/>
+
+    <!-- ① 기획 -->
+    <g transform="translate(80,62)">
+      <circle r="50" fill="#2563eb" opacity="0.10"/>
+      <circle r="44" fill="url(#wg1)"/>
+      <circle r="44" fill="none" stroke="white" stroke-width="1" opacity="0.18"/>
+      <text x="0" y="-52" text-anchor="middle" fill="#93c5fd" font-size="9" font-weight="700" letter-spacing="1.5" font-family="monospace">STEP 01</text>
+      <!-- 연필 아이콘 -->
+      <g transform="translate(-12,-12)" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>
+        <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </g>
+      <text y="22" text-anchor="middle" fill="white" font-size="12.5" font-weight="700" font-family="'Apple SD Gothic Neo','Noto Sans KR',sans-serif">기획</text>
+      <text y="35" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9.5" font-family="sans-serif">Planning</text>
+    </g>
+
+    <!-- ② 제작 -->
+    <g transform="translate(255,62)">
+      <circle r="50" fill="#7c3aed" opacity="0.10"/>
+      <circle r="44" fill="url(#wg2)"/>
+      <circle r="44" fill="none" stroke="white" stroke-width="1" opacity="0.18"/>
+      <text x="0" y="-52" text-anchor="middle" fill="#c4b5fd" font-size="9" font-weight="700" letter-spacing="1.5" font-family="monospace">STEP 02</text>
+      <!-- 렌치 아이콘 -->
+      <g transform="translate(-12,-12)" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+      </g>
+      <text y="22" text-anchor="middle" fill="white" font-size="12.5" font-weight="700" font-family="'Apple SD Gothic Neo','Noto Sans KR',sans-serif">제작</text>
+      <text y="35" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9.5" font-family="sans-serif">Production</text>
+    </g>
+
+    <!-- ③ 검토 -->
+    <g transform="translate(430,62)">
+      <circle r="50" fill="#d97706" opacity="0.10"/>
+      <circle r="44" fill="url(#wg3)"/>
+      <circle r="44" fill="none" stroke="white" stroke-width="1" opacity="0.18"/>
+      <text x="0" y="-52" text-anchor="middle" fill="#fde68a" font-size="9" font-weight="700" letter-spacing="1.5" font-family="monospace">STEP 03</text>
+      <!-- 돋보기+체크 아이콘 -->
+      <g transform="translate(-12,-12)" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="7"/>
+        <path d="M21 21l-4.35-4.35"/>
+        <path d="M8.5 11l2 2 4-4"/>
+      </g>
+      <text y="22" text-anchor="middle" fill="white" font-size="12.5" font-weight="700" font-family="'Apple SD Gothic Neo','Noto Sans KR',sans-serif">검토</text>
+      <text y="35" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9.5" font-family="sans-serif">Review</text>
+    </g>
+
+    <!-- ④ 배포 -->
+    <g transform="translate(605,62)">
+      <circle r="50" fill="#059669" opacity="0.10"/>
+      <circle r="44" fill="url(#wg4)"/>
+      <circle r="44" fill="none" stroke="white" stroke-width="1" opacity="0.18"/>
+      <text x="0" y="-52" text-anchor="middle" fill="#6ee7b7" font-size="9" font-weight="700" letter-spacing="1.5" font-family="monospace">STEP 04</text>
+      <!-- 업로드 화살표 아이콘 -->
+      <g transform="translate(-12,-12)" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </g>
+      <text y="22" text-anchor="middle" fill="white" font-size="12.5" font-weight="700" font-family="'Apple SD Gothic Neo','Noto Sans KR',sans-serif">배포</text>
+      <text y="35" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9.5" font-family="sans-serif">Deploy</text>
+    </g>
+
+    <!-- ⑤ 분석 -->
+    <g transform="translate(780,62)">
+      <circle r="50" fill="#0284c7" opacity="0.10"/>
+      <circle r="44" fill="url(#wg5)"/>
+      <circle r="44" fill="none" stroke="white" stroke-width="1" opacity="0.18"/>
+      <text x="0" y="-52" text-anchor="middle" fill="#bae6fd" font-size="9" font-weight="700" letter-spacing="1.5" font-family="monospace">STEP 05</text>
+      <!-- 바 차트 아이콘 -->
+      <g transform="translate(-12,-12)" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+        <line x1="18" y1="20" x2="18" y2="8"/>
+        <line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6"  y1="20" x2="6"  y2="13"/>
+        <line x1="2"  y1="20" x2="22" y2="20"/>
+      </g>
+      <text y="22" text-anchor="middle" fill="white" font-size="12.5" font-weight="700" font-family="'Apple SD Gothic Neo','Noto Sans KR',sans-serif">분석</text>
+      <text y="35" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9.5" font-family="sans-serif">Analysis</text>
+    </g>
+  </svg>
+</div>
+
+<div class="main-grid">
+
+  <!-- 1행: 오늘 할 일 (전체 너비) -->
+  <div class="card task-card-full">
+    <div class="card-title">오늘 할 일 · 우선순위순</div>
+    <div class="task-list-scroll">
+      <div class="task-list" id="taskList">
+
+        <!-- 회의록 3/10 액션 아이템 -->
+        <div class="task-wrapper">
+          <div class="task-item" onclick="toggleExpand(this.parentElement)">
+            <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+            <div class="task-content">
+              <div class="task-name">영상 제작비 추가 예산 요청서 작성</div>
+              <div class="task-meta">
+                <span class="tag tag-high">높음</span>
+                <span class="tag tag-cat">운영</span>
+                <span class="tag tag-wip">대기</span>
+                <span class="task-due overdue">~ 3/17</span>
+              </div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+          <div class="task-detail"><div class="detail-body">
+            <div class="detail-row">
+              <div class="detail-field"><span class="detail-label">담당자</span> 정팀장</div>
+              <div class="detail-field"><span class="detail-label">마감일</span> 2026-03-17</div>
+              <div class="detail-field"><span class="detail-label">카테고리</span> 운영</div>
+              <div class="detail-field"><span class="detail-label">상태</span> 대기</div>
+            </div>
+            <textarea class="detail-note" placeholder="메모를 추가하세요...">📋 출처: 3/10 마케팅팀 주간회의 논의사항
+영상 광고 B안(영상형) 추가 3개 제작을 위한 예산 200만원 추가 요청 예정.
+3/17 다음 회의 전까지 요청서 작성 완료 필요.</textarea>
+          </div></div>
+        </div>
+
+        <div class="task-wrapper">
+          <div class="task-item" onclick="toggleExpand(this.parentElement)">
+            <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+            <div class="task-content">
+              <div class="task-name">3월 넷째 주 티저 런칭 일정표 작성</div>
+              <div class="task-meta">
+                <span class="tag tag-high">높음</span>
+                <span class="tag tag-cat">마케팅</span>
+                <span class="tag tag-wip">대기</span>
+                <span class="task-due overdue">~ 3/21</span>
+              </div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+          <div class="task-detail"><div class="detail-body">
+            <div class="detail-row">
+              <div class="detail-field"><span class="detail-label">담당자</span> 정팀장</div>
+              <div class="detail-field"><span class="detail-label">마감일</span> 2026-03-21</div>
+              <div class="detail-field"><span class="detail-label">카테고리</span> 마케팅</div>
+              <div class="detail-field"><span class="detail-label">상태</span> 대기</div>
+            </div>
+            <textarea class="detail-note" placeholder="메모를 추가하세요...">📋 출처: 3/10 마케팅팀 주간회의 논의사항
+4월 신제품 런칭 사전 티저를 3월 넷째 주(3/21~)부터 시작하기로 결정.
+구체적인 일별 콘텐츠 발행 일정표 작성 필요.</textarea>
+          </div></div>
+        </div>
+
+        <div class="task-wrapper">
+          <div class="task-item" onclick="toggleExpand(this.parentElement)">
+            <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+            <div class="task-content">
+              <div class="task-name">파트너사 계약서 검토</div>
+              <div class="task-meta">
+                <span class="tag tag-high">높음</span>
+                <span class="tag tag-cat">운영</span>
+                <span class="tag tag-wip">대기</span>
+                <span class="task-due overdue">~ 3/11</span>
+              </div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+          <div class="task-detail"><div class="detail-body">
+            <div class="detail-row">
+              <div class="detail-field"><span class="detail-label">담당자</span> 정팀장</div>
+              <div class="detail-field"><span class="detail-label">마감일</span> 2026-03-11</div>
+              <div class="detail-field"><span class="detail-label">카테고리</span> 운영</div>
+              <div class="detail-field"><span class="detail-label">상태</span> 대기</div>
+            </div>
+            <textarea class="detail-note" placeholder="메모를 추가하세요..."></textarea>
+          </div></div>
+        </div>
+
+        <div class="task-wrapper">
+          <div class="task-item" onclick="toggleExpand(this.parentElement)">
+            <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+            <div class="task-content">
+              <div class="task-name">3월 프로모션 기획안 작성</div>
+              <div class="task-meta">
+                <span class="tag tag-high">높음</span>
+                <span class="tag tag-cat">마케팅</span>
+                <span class="tag tag-wip">진행중</span>
+                <span class="task-due overdue">~ 3/12</span>
+              </div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+          <div class="task-detail"><div class="detail-body">
+            <div class="detail-row">
+              <div class="detail-field"><span class="detail-label">담당자</span> 김대리</div>
+              <div class="detail-field"><span class="detail-label">마감일</span> 2026-03-12</div>
+              <div class="detail-field"><span class="detail-label">카테고리</span> 마케팅</div>
+              <div class="detail-field"><span class="detail-label">상태</span> 진행중</div>
+            </div>
+            <textarea class="detail-note" placeholder="메모를 추가하세요..."></textarea>
+          </div></div>
+        </div>
+
+        <div class="task-wrapper">
+          <div class="task-item" onclick="toggleExpand(this.parentElement)">
+            <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+            <div class="task-content">
+              <div class="task-name">인플루언서 미팅 일정 잡기</div>
+              <div class="task-meta">
+                <span class="tag tag-high">높음</span>
+                <span class="tag tag-cat">마케팅</span>
+                <span class="tag tag-wip">대기</span>
+                <span class="task-due overdue">~ 3/14</span>
+              </div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+          <div class="task-detail"><div class="detail-body">
+            <div class="detail-row">
+              <div class="detail-field"><span class="detail-label">담당자</span> 이과장</div>
+              <div class="detail-field"><span class="detail-label">마감일</span> 2026-03-14</div>
+              <div class="detail-field"><span class="detail-label">카테고리</span> 마케팅</div>
+              <div class="detail-field"><span class="detail-label">상태</span> 대기</div>
+            </div>
+            <textarea class="detail-note" placeholder="메모를 추가하세요..."></textarea>
+          </div></div>
+        </div>
+
+        <div class="task-wrapper">
+          <div class="task-item" onclick="toggleExpand(this.parentElement)">
+            <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+            <div class="task-content">
+              <div class="task-name">4월 신제품 티저 콘텐츠 기획</div>
+              <div class="task-meta">
+                <span class="tag tag-high">높음</span>
+                <span class="tag tag-cat">마케팅</span>
+                <span class="tag tag-wip">대기</span>
+                <span class="task-due overdue">~ 3/21</span>
+              </div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+          <div class="task-detail"><div class="detail-body">
+            <div class="detail-row">
+              <div class="detail-field"><span class="detail-label">담당자</span> 정팀장</div>
+              <div class="detail-field"><span class="detail-label">마감일</span> 2026-03-21</div>
+              <div class="detail-field"><span class="detail-label">카테고리</span> 마케팅</div>
+              <div class="detail-field"><span class="detail-label">상태</span> 대기</div>
+            </div>
+            <textarea class="detail-note" placeholder="메모를 추가하세요..."></textarea>
+          </div></div>
+        </div>
+
+        <div class="task-wrapper">
+          <div class="task-item" onclick="toggleExpand(this.parentElement)">
+            <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+            <div class="task-content">
+              <div class="task-name">월간 마케팅 보고서 작성</div>
+              <div class="task-meta">
+                <span class="tag tag-high">높음</span>
+                <span class="tag tag-cat">보고</span>
+                <span class="tag tag-wip">대기</span>
+                <span class="task-due overdue">~ 3/31</span>
+              </div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+          <div class="task-detail"><div class="detail-body">
+            <div class="detail-row">
+              <div class="detail-field"><span class="detail-label">담당자</span> 김대리</div>
+              <div class="detail-field"><span class="detail-label">마감일</span> 2026-03-31</div>
+              <div class="detail-field"><span class="detail-label">카테고리</span> 보고</div>
+              <div class="detail-field"><span class="detail-label">상태</span> 대기</div>
+            </div>
+            <textarea class="detail-note" placeholder="메모를 추가하세요..."></textarea>
+          </div></div>
+        </div>
+
+        <div class="task-wrapper">
+          <div class="task-item" onclick="toggleExpand(this.parentElement)">
+            <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+            <div class="task-content">
+              <div class="task-name">고객 설문조사 결과 분석</div>
+              <div class="task-meta">
+                <span class="tag tag-mid">보통</span>
+                <span class="tag tag-cat">리서치</span>
+                <span class="tag tag-wip">진행중</span>
+                <span class="task-due overdue">~ 3/13</span>
+              </div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+          <div class="task-detail"><div class="detail-body">
+            <div class="detail-row">
+              <div class="detail-field"><span class="detail-label">담당자</span> 정팀장</div>
+              <div class="detail-field"><span class="detail-label">마감일</span> 2026-03-13</div>
+              <div class="detail-field"><span class="detail-label">카테고리</span> 리서치</div>
+              <div class="detail-field"><span class="detail-label">상태</span> 진행중</div>
+            </div>
+            <textarea class="detail-note" placeholder="메모를 추가하세요..."></textarea>
+          </div></div>
+        </div>
+
+        <div class="task-wrapper">
+          <div class="task-item" onclick="toggleExpand(this.parentElement)">
+            <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+            <div class="task-content">
+              <div class="task-name">영상 광고 3개 추가 제작</div>
+              <div class="task-meta">
+                <span class="tag tag-mid">보통</span>
+                <span class="tag tag-cat">콘텐츠</span>
+                <span class="tag tag-wip">진행중</span>
+                <span class="task-due overdue">~ 3/14</span>
+              </div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+          <div class="task-detail"><div class="detail-body">
+            <div class="detail-row">
+              <div class="detail-field"><span class="detail-label">담당자</span> 박사원</div>
+              <div class="detail-field"><span class="detail-label">마감일</span> 2026-03-14</div>
+              <div class="detail-field"><span class="detail-label">카테고리</span> 콘텐츠</div>
+              <div class="detail-field"><span class="detail-label">상태</span> 진행중</div>
+            </div>
+            <textarea class="detail-note" placeholder="메모를 추가하세요...">B안(영상형) 기반 3개 추가 제작</textarea>
+          </div></div>
+        </div>
+
+        <div class="task-wrapper">
+          <div class="task-item" onclick="toggleExpand(this.parentElement)">
+            <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+            <div class="task-content">
+              <div class="task-name">경쟁사 C사 캠페인 분석</div>
+              <div class="task-meta">
+                <span class="tag tag-mid">보통</span>
+                <span class="tag tag-cat">리서치</span>
+                <span class="tag tag-wip">대기</span>
+                <span class="task-due overdue">~ 3/16</span>
+              </div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+          <div class="task-detail"><div class="detail-body">
+            <div class="detail-row">
+              <div class="detail-field"><span class="detail-label">담당자</span> 박사원</div>
+              <div class="detail-field"><span class="detail-label">마감일</span> 2026-03-16</div>
+              <div class="detail-field"><span class="detail-label">카테고리</span> 리서치</div>
+              <div class="detail-field"><span class="detail-label">상태</span> 대기</div>
+            </div>
+            <textarea class="detail-note" placeholder="메모를 추가하세요..."></textarea>
+          </div></div>
+        </div>
+
+        <div class="task-wrapper">
+          <div class="task-item" onclick="toggleExpand(this.parentElement)">
+            <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+            <div class="task-content">
+              <div class="task-name">블로그 포스트 2건 작성</div>
+              <div class="task-meta">
+                <span class="tag tag-low">낮음</span>
+                <span class="tag tag-cat">콘텐츠</span>
+                <span class="tag tag-wip">대기</span>
+                <span class="task-due overdue">~ 3/18</span>
+              </div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+          <div class="task-detail"><div class="detail-body">
+            <div class="detail-row">
+              <div class="detail-field"><span class="detail-label">담당자</span> 이과장</div>
+              <div class="detail-field"><span class="detail-label">마감일</span> 2026-03-18</div>
+              <div class="detail-field"><span class="detail-label">카테고리</span> 콘텐츠</div>
+              <div class="detail-field"><span class="detail-label">상태</span> 대기</div>
+            </div>
+            <textarea class="detail-note" placeholder="메모를 추가하세요..."></textarea>
+          </div></div>
+        </div>
+
+        <div class="task-wrapper">
+          <div class="task-item done" onclick="toggleExpand(this.parentElement)">
+            <input type="checkbox" checked onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+            <div class="task-content">
+              <div class="task-name">SNS 계정 주간 콘텐츠 업로드</div>
+              <div class="task-meta">
+                <span class="tag tag-mid">보통</span>
+                <span class="tag tag-cat">콘텐츠</span>
+                <span class="tag tag-done">완료</span>
+                <span class="task-due">3/10</span>
+              </div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+          <div class="task-detail"><div class="detail-body">
+            <div class="detail-row">
+              <div class="detail-field"><span class="detail-label">담당자</span> 김대리</div>
+              <div class="detail-field"><span class="detail-label">완료일</span> 2026-03-10</div>
+              <div class="detail-field"><span class="detail-label">카테고리</span> 콘텐츠</div>
+              <div class="detail-field"><span class="detail-label">상태</span> 완료</div>
+            </div>
+            <textarea class="detail-note" placeholder="메모를 추가하세요..."></textarea>
+          </div></div>
+        </div>
+
+      </div>
+    </div>
+    <button class="add-task-btn" onclick="openModal()">＋ 새 할 일 추가</button>
+  </div>
+
+  <!-- 2행 좌: 프로젝트 진행률 (프로젝트현황.csv 기준 · 4/7 갱신) -->
+  <div class="card">
+      <div class="card-title">프로젝트별 진행률</div>
+      <div class="project-list">
+
+        <div class="project-item">
+          <div class="project-header">
+            <span class="project-name">유튜브 채널 리뉴얼</span>
+            <span class="project-pct">80%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:80%; background: linear-gradient(90deg, #00d4aa, #00efc0);"></div>
+          </div>
+          <div class="project-sub">마무리 단계 · 박사원 · 예산 150만 중 120만 집행 · <span style="color:var(--warn)">마감 3/15 지연</span></div>
+        </div>
+
+        <div class="project-item">
+          <div class="project-header">
+            <span class="project-name">봄맞이 프로모션</span>
+            <span class="project-pct">65%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:65%; background: linear-gradient(90deg, #6c63ff, #8b85ff);"></div>
+          </div>
+          <div class="project-sub">진행중 · 김대리 · 예산 500만 중 325만 집행 · <span style="color:var(--warn)">마감 3/31 지연</span></div>
+        </div>
+
+        <div class="project-item">
+          <div class="project-header">
+            <span class="project-name">홈페이지 리뉴얼</span>
+            <span class="project-pct">45%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:45%; background: linear-gradient(90deg, #38bdf8, #7dd3fc);"></div>
+          </div>
+          <div class="project-sub">진행중 · 이과장 · 예산 600만 중 270만 집행 · 마감 4/15</div>
+        </div>
+
+        <div class="project-item">
+          <div class="project-header">
+            <span class="project-name">인플루언서 협업</span>
+            <span class="project-pct">35%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:35%; background: linear-gradient(90deg, #ffd166, #ffdf8c);"></div>
+          </div>
+          <div class="project-sub">진행중 · 이과장 · 예산 300만 중 105만 집행 · <span style="color:var(--warn)">마감 3/28 지연</span></div>
+        </div>
+
+        <div class="project-item">
+          <div class="project-header">
+            <span class="project-name">신제품 런칭 캠페인</span>
+            <span class="project-pct">20%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:20%; background: linear-gradient(90deg, #a78bfa, #c4b5fd);"></div>
+          </div>
+          <div class="project-sub">준비중 · 정팀장 · 예산 1,200만 중 240만 집행 · 마감 4/30</div>
+        </div>
+
+        <div class="project-item">
+          <div class="project-header">
+            <span class="project-name">고객 리텐션 프로그램</span>
+            <span class="project-pct">10%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:10%; background: linear-gradient(90deg, #ff6b6b, #ff8e8e);"></div>
+          </div>
+          <div class="project-sub">기획중 · 정팀장 · 예산 800만 중 80만 집행 · 마감 5/31</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 2행 우: 주간 일정 -->
+  <div class="card" style="overflow-y: auto; max-height: 520px;">
+    <div class="card-title" style="--accent: #00d4aa;">이번 주 일정</div>
+    <div class="schedule-grid">
+
+      <div class="day-block">
+        <div class="day-label">월요일 <span class="date-tag">3/10</span></div>
+        <div class="event-list">
+          <div class="event-item">
+            <span class="event-time">10:00</span>
+            <span class="event-title">마케팅팀 주간회의</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">14:00</span>
+            <span class="event-title">신제품 런칭 킥오프 미팅</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="day-block">
+        <div class="day-label">화요일 <span class="date-tag">3/11</span></div>
+        <div class="event-list">
+          <div class="event-item">
+            <span class="event-time">09:00</span>
+            <span class="event-title">3월 프로모션 기획안 마감</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">11:00</span>
+            <span class="event-title">디자인팀 협업 미팅</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">15:00</span>
+            <span class="event-title">파트너사 계약서 검토</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">19:00</span>
+            <span class="event-title">클로드 코드 워크숍 참석</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="day-block">
+        <div class="day-label">수요일 <span class="date-tag">3/12</span></div>
+        <div class="event-list">
+          <div class="event-item">
+            <span class="event-time">10:00</span>
+            <span class="event-title">인플루언서 미팅 (푸드스타일리 김OO)</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">14:00</span>
+            <span class="event-title">고객 설문 결과 공유 미팅</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">16:00</span>
+            <span class="event-title">콘텐츠 편집 회의</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="day-block">
+        <div class="day-label">목요일 <span class="date-tag">3/13</span></div>
+        <div class="event-list">
+          <div class="event-item">
+            <span class="event-time">09:30</span>
+            <span class="event-title">영상 광고 촬영 (스튜디오)</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">13:00</span>
+            <span class="event-title">점심 미팅 — 광고 대행사</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">15:00</span>
+            <span class="event-title">SNS 콘텐츠 리뷰</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="day-block">
+        <div class="day-label">금요일 <span class="date-tag">3/14</span></div>
+        <div class="event-list">
+          <div class="event-item">
+            <span class="event-time">10:00</span>
+            <span class="event-title">유튜브 채널 리뉴얼 최종 검토</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">14:00</span>
+            <span class="event-title">주간 성과 리뷰</span>
+          </div>
+          <div class="event-item">
+            <span class="event-time">16:00</span>
+            <span class="event-title">다음 주 콘텐츠 캘린더 확정</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- 새 할 일 추가 모달 -->
+<div class="modal-overlay" id="addModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title">새 할 일 추가</div>
+    <form id="taskForm" onsubmit="event.preventDefault(); addTask();">
+      <div class="form-grid">
+        <div class="form-field full">
+          <label class="form-label">업무명 *</label>
+          <input id="newTaskName" class="form-input" type="text" placeholder="업무 내용을 입력하세요" required />
+        </div>
+        <div class="form-field">
+          <label class="form-label">우선순위</label>
+          <select id="newPriority" class="form-select">
+            <option value="높음">높음</option>
+            <option value="보통" selected>보통</option>
+            <option value="낮음">낮음</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">카테고리</label>
+          <select id="newCategory" class="form-select">
+            <option value="마케팅">마케팅</option>
+            <option value="콘텐츠">콘텐츠</option>
+            <option value="리서치">리서치</option>
+            <option value="운영">운영</option>
+            <option value="보고">보고</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">담당자</label>
+          <input id="newAssignee" class="form-input" type="text" placeholder="이름 입력" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">마감일</label>
+          <input id="newDue" class="form-input" type="date" />
+        </div>
+        <div class="form-field full">
+          <label class="form-label">메모</label>
+          <textarea id="newNote" class="form-textarea" placeholder="추가 메모를 입력하세요..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" onclick="closeModal()">취소</button>
+        <button type="submit" class="btn-add">추가하기</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 비고 -->
+<div class="notes-box">
+  <div class="card-title">주요 공지 / 비고</div>
+  <div class="note-item">3월 프로모션: 봄맞이 할인 이벤트 <strong style="color:var(--text)">3/20 – 3/31</strong> 진행 예정</div>
+  <div class="note-item">신제품 런칭: 4월 첫째 주 목표 · 3월 넷째 주 사전 티저 시작</div>
+  <div class="note-item">영상 광고: B안(영상형) 기반 3개 추가 제작 진행 중</div>
+</div>
+
+<!-- ══ 파일 정리 결과 ══ -->
+<div class="card" style="margin-top:24px;">
+  <div class="card-title" style="margin-bottom:16px;">파일 정리 결과</div>
+  <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">「정리해줘」 폴더의 15개 파일을 용도별 4개 하위 폴더로 분류했습니다.</div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+    <!-- 보고서 -->
+    <div style="border-radius:8px;border:1px solid var(--border);padding:14px;background:rgba(59,130,246,0.05);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+        <span style="font-size:16px;">📄</span>
+        <span style="font-size:13px;font-weight:600;color:#60a5fa;">보고서</span>
+        <span style="font-size:10px;color:var(--muted);margin-left:auto;">4개</span>
+      </div>
+      <div style="font-size:11px;line-height:1.8;color:var(--text);">
+        <div>보고서_초안.txt</div>
+        <div>보고서_수정.txt</div>
+        <div>보고서_최종.txt</div>
+        <div>보고서_최종_진짜최종.txt</div>
+      </div>
+    </div>
+    <!-- 메모 -->
+    <div style="border-radius:8px;border:1px solid var(--border);padding:14px;background:rgba(167,139,250,0.05);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+        <span style="font-size:16px;">📝</span>
+        <span style="font-size:13px;font-weight:600;color:#a78bfa;">메모</span>
+        <span style="font-size:10px;color:var(--muted);margin-left:auto;">4개</span>
+      </div>
+      <div style="font-size:11px;line-height:1.8;color:var(--text);">
+        <div>메모.txt</div>
+        <div>기획_메모.txt</div>
+        <div>아이디어_메모_0301.txt</div>
+        <div>피드백.txt</div>
+      </div>
+    </div>
+    <!-- 업무 -->
+    <div style="border-radius:8px;border:1px solid var(--border);padding:14px;background:rgba(52,211,153,0.05);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+        <span style="font-size:16px;">✅</span>
+        <span style="font-size:13px;font-weight:600;color:#34d399;">업무</span>
+        <span style="font-size:10px;color:var(--muted);margin-left:auto;">3개</span>
+      </div>
+      <div style="font-size:11px;line-height:1.8;color:var(--text);">
+        <div>할일.txt</div>
+        <div>회의실.txt</div>
+        <div>영수증_정리.txt</div>
+      </div>
+    </div>
+    <!-- 기타 -->
+    <div style="border-radius:8px;border:1px solid var(--border);padding:14px;background:rgba(251,191,36,0.05);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+        <span style="font-size:16px;">📦</span>
+        <span style="font-size:13px;font-weight:600;color:#fbbf24;">기타</span>
+        <span style="font-size:10px;color:var(--muted);margin-left:auto;">4개</span>
+      </div>
+      <div style="font-size:11px;line-height:1.8;color:var(--text);">
+        <div>temp.csv</div>
+        <div>나중에정리.txt</div>
+        <div>링크모음.txt</div>
+        <div>무제.txt</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 사이트 분석 (wisetax.kr) ══ -->
+<div class="card" style="margin-top:24px;">
+  <div class="card-title" style="margin-bottom:16px;">사이트 분석</div>
+
+  <!-- 헤더 -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:14px;font-weight:700;color:#60a5fa;">W</span>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:600;">WISE TAX GROUP</div>
+        <a href="http://wisetax.kr" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--muted);text-decoration:none;">wisetax.kr</a>
+      </div>
+    </div>
+    <span style="font-size:10px;padding:2px 10px;border-radius:20px;background:rgba(52,211,153,0.15);color:#34d399;font-weight:600;">분석 완료</span>
+  </div>
+
+  <!-- 개요 -->
+  <div style="padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:16px;">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;">개요</div>
+    <div style="font-size:13px;line-height:1.7;">강남구 역삼동 소재 세무법인. 4명의 대표 세무사(전기환, 전병승, 이동언, 이승재)가 기장대리, 신고대리, 경정청구, 재산세 컨설팅 서비스를 제공합니다.</div>
+  </div>
+
+  <!-- 3칼럼: 구조 / 디자인 / 기술 -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;">
+    <!-- 구조 -->
+    <div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;">사이트 구조</div>
+      <div style="font-size:12px;line-height:2;">
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#60a5fa;display:inline-block;"></span>메인 (원페이지 스크롤)</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#60a5fa;display:inline-block;"></span>구성원 (member.html)</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#60a5fa;display:inline-block;"></span>업무영역 (business.html)</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#60a5fa;display:inline-block;"></span>Wise Note (wisenote.html)</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#60a5fa;display:inline-block;"></span>오시는길 (location.html)</div>
+      </div>
+    </div>
+    <!-- 디자인 -->
+    <div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;">디자인 특징</div>
+      <div style="font-size:12px;line-height:2;">
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#a78bfa;display:inline-block;"></span>미니멀 화이트 배경</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#a78bfa;display:inline-block;"></span>AOS 스크롤 애니메이션</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#a78bfa;display:inline-block;"></span>반응형 레이아웃 지원</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#a78bfa;display:inline-block;"></span>대형 히어로 이미지</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#a78bfa;display:inline-block;"></span>카드형 서비스 소개</div>
+      </div>
+    </div>
+    <!-- 기술 -->
+    <div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;">기술 스택</div>
+      <div style="font-size:12px;line-height:2;">
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#fbbf24;display:inline-block;"></span>정적 HTML/CSS/JS</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#fbbf24;display:inline-block;"></span>jQuery 3.7.1</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#fbbf24;display:inline-block;"></span>AOS 2.3.1 애니메이션</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#fbbf24;display:inline-block;"></span>Whalessoft 호스팅</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#fbbf24;display:inline-block;"></span>이미지 19개 사용</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 주요 서비스 -->
+  <div style="padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-weight:600;">주요 서비스</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+      <div style="border-radius:8px;border:1px solid var(--border);padding:12px;background:rgba(59,130,246,0.05);">
+        <div style="font-size:12px;font-weight:600;color:#60a5fa;margin-bottom:4px;">기장대리</div>
+        <div style="font-size:10px;color:var(--muted);line-height:1.5;">세무 리스크 관리 + 납부예상액 사전 통지</div>
+      </div>
+      <div style="border-radius:8px;border:1px solid var(--border);padding:12px;background:rgba(52,211,153,0.05);">
+        <div style="font-size:12px;font-weight:600;color:#34d399;margin-bottom:4px;">신고대리</div>
+        <div style="font-size:10px;color:var(--muted);line-height:1.5;">부가세, 종합소득세, 법인세 신고</div>
+      </div>
+      <div style="border-radius:8px;border:1px solid var(--border);padding:12px;background:rgba(167,139,250,0.05);">
+        <div style="font-size:12px;font-weight:600;color:#a78bfa;margin-bottom:4px;">조세불복</div>
+        <div style="font-size:10px;color:var(--muted);line-height:1.5;">경정청구 전문, 세금환급 서비스</div>
+      </div>
+      <div style="border-radius:8px;border:1px solid var(--border);padding:12px;background:rgba(251,191,36,0.05);">
+        <div style="font-size:12px;font-weight:600;color:#fbbf24;margin-bottom:4px;">재산세 컨설팅</div>
+        <div style="font-size:10px;color:var(--muted);line-height:1.5;">양도/증여/상속, 비상장주식 평가</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 개선 제안 -->
+  <div style="padding:14px 16px;border-radius:8px;background:var(--bg);margin-bottom:14px;">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;">개선 제안</div>
+    <div style="font-size:12px;line-height:2;">
+      <div style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#fbbf24;font-weight:700;">!</span> SEO: meta description, keywords 태그 없음 — 검색 노출에 불리</div>
+      <div style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#fbbf24;font-weight:700;">!</span> 성능: 스크롤 섹션 간 빈 공간이 과도 (총 높이 7,555px)</div>
+      <div style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#fbbf24;font-weight:700;">!</span> 접근성: 시맨틱 HTML 부족, 이미지 alt 텍스트 개선 필요</div>
+      <div style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#fbbf24;font-weight:700;">!</span> 보안: HTTP 사용 중 — HTTPS 전환 권장</div>
+    </div>
+  </div>
+
+  <!-- 하단 정보 -->
+  <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);padding-top:10px;border-top:1px solid var(--border);">
+    <span>서울 강남구 역삼로3길 11 광성빌딩 3층</span>
+    <span>Tel. 02-538-8555</span>
+  </div>
+</div>
+
+<script>
+  // 테마 토글
+  const btn = document.getElementById('themeBtn');
+  const isLight = localStorage.getItem('theme') === 'light';
+  if (isLight) applyLight();
+
+  function applyLight() {
+    document.documentElement.classList.add('light');
+    btn.innerHTML = '<span class="icon">☀️</span> 라이트 모드';
+    if (typeof updateChartColors === 'function') updateChartColors();
+  }
+  function applyDark() {
+    document.documentElement.classList.remove('light');
+    btn.innerHTML = '<span class="icon">🌙</span> 다크 모드';
+    if (typeof updateChartColors === 'function') updateChartColors();
+  }
+  function toggleTheme() {
+    if (document.documentElement.classList.contains('light')) {
+      applyDark();
+      localStorage.setItem('theme', 'dark');
+    } else {
+      applyLight();
+      localStorage.setItem('theme', 'light');
+    }
+  }
+
+  // ── 매출 차트 ──
+  const PRODUCTS  = ['무선 이어폰','텀블러','블루투스 스피커','보조배터리','에코백','무선 충전기'];
+  const COLORS    = ['#3b82f6','#38bdf8','#a78bfa','#34d399','#fbbf24','#f87171'];
+  const JAN_DATA  = [1744, 748, 660, 616, 437, 446];   // 만원 단위
+  const FEB_DATA  = [1139, 405, 300, 287, 180, 140];
+  const TOTAL     = PRODUCTS.map((_,i) => JAN_DATA[i] + FEB_DATA[i]);
+  const GRAND     = TOTAL.reduce((a,b) => a+b, 0);
+
+  function getChartTextColor() {
+    return document.documentElement.classList.contains('light') ? '#1a1c2e' : '#dde6f8';
+  }
+  function getGridColor() {
+    return document.documentElement.classList.contains('light')
+      ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)';
+  }
+
+  // 도넛 차트
+  const donutCtx = document.getElementById('donutChart').getContext('2d');
+  const donutChart = new Chart(donutCtx, {
+    type: 'doughnut',
+    data: {
+      labels: PRODUCTS,
+      datasets: [{ data: TOTAL, backgroundColor: COLORS, borderWidth: 2,
+        borderColor: document.documentElement.classList.contains('light') ? '#fff' : '#0d1528',
+        hoverOffset: 6 }]
+    },
+    options: {
+      cutout: '68%',
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString()}만원 (${(ctx.parsed/GRAND*100).toFixed(1)}%)` }
+      }},
+      animation: { animateRotate: true, duration: 900 }
+    }
+  });
+
+  // 도넛 범례 직접 렌더
+  const legendEl = document.getElementById('donutLegend');
+  PRODUCTS.forEach((name, i) => {
+    const pct = (TOTAL[i] / GRAND * 100).toFixed(1);
+    legendEl.innerHTML += `
+      <div class="legend-item">
+        <span class="legend-dot" style="background:${COLORS[i]}"></span>
+        <span class="legend-name">${name}</span>
+        <span class="legend-pct">${pct}%</span>
+      </div>`;
+  });
+
+  // 바 차트
+  const barCtx = document.getElementById('barChart').getContext('2d');
+  const barChart = new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: ['무선\n이어폰', '텀블러', '블루투스\n스피커', '보조\n배터리', '에코백', '무선\n충전기'],
+      datasets: [
+        { label: '1월', data: JAN_DATA, backgroundColor: 'rgba(59,130,246,0.80)',
+          borderRadius: 5, borderSkipped: false },
+        { label: '2월', data: FEB_DATA, backgroundColor: 'rgba(56,189,248,0.70)',
+          borderRadius: 5, borderSkipped: false }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: getChartTextColor(), font: { size: 11 }, boxWidth: 12, padding: 14 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}만원` } }
+      },
+      scales: {
+        x: { ticks: { color: getChartTextColor(), font: { size: 10 }, maxRotation: 0 },
+             grid: { display: false } },
+        y: { ticks: { color: getChartTextColor(), font: { size: 10 },
+             callback: v => v + '만' },
+             grid: { color: getGridColor() },
+             beginAtZero: true }
+      }
+    }
+  });
+
+  // 테마 전환 시 차트 색상 업데이트
+  function updateChartColors() {
+    const tc = getChartTextColor(), gc = getGridColor();
+    const isDark = !document.documentElement.classList.contains('light');
+    barChart.options.plugins.legend.labels.color = tc;
+    barChart.options.scales.x.ticks.color = tc;
+    barChart.options.scales.y.ticks.color = tc;
+    barChart.options.scales.x.grid.color  = gc;
+    barChart.options.scales.y.grid.color  = gc;
+    donutChart.data.datasets[0].borderColor = isDark ? '#0d1528' : '#fff';
+    barChart.update();
+    donutChart.update();
+  }
+
+  // ── 날씨 ──
+  const WMO = {
+    0:'맑음', 1:'대체로 맑음', 2:'구름 조금', 3:'흐림',
+    45:'안개', 48:'안개', 51:'이슬비', 53:'이슬비', 55:'이슬비',
+    61:'비', 63:'비', 65:'강한 비', 71:'눈', 73:'눈', 75:'강한 눈',
+    80:'소나기', 81:'소나기', 82:'강한 소나기', 95:'뇌우', 96:'뇌우', 99:'뇌우'
+  };
+  const WMO_ICON = {
+    0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
+    45:'🌫️', 48:'🌫️', 51:'🌦️', 53:'🌦️', 55:'🌦️',
+    61:'🌧️', 63:'🌧️', 65:'🌧️', 71:'❄️', 73:'❄️', 75:'❄️',
+    80:'🌦️', 81:'🌦️', 82:'⛈️', 95:'⛈️', 96:'⛈️', 99:'⛈️'
+  };
+
+  function dustGrade(val, thresholds, labels) {
+    for (let i = 0; i < thresholds.length; i++) {
+      if (val <= thresholds[i]) return labels[i];
+    }
+    return labels[labels.length - 1];
+  }
+  function dustBadge(grade) {
+    const cls = {좋음:'dust-good',보통:'dust-normal',나쁨:'dust-bad','매우나쁨':'dust-very'};
+    return `<span class="dust-badge ${cls[grade]}">${grade}</span>`;
+  }
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      try {
+        const [wRes, aqRes] = await Promise.all([
+          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weathercode&timezone=auto`),
+          fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm10,pm2_5&timezone=auto`)
+        ]);
+        const w  = await wRes.json();
+        const aq = await aqRes.json();
+
+        const code  = w.current.weathercode;
+        const temp  = Math.round(w.current.temperature_2m);
+        const feel  = Math.round(w.current.apparent_temperature);
+        const pm10  = Math.round(aq.current.pm10);
+        const pm25  = Math.round(aq.current.pm2_5);
+
+        const pm10Grade = dustGrade(pm10,  [30, 80, 150], ['좋음','보통','나쁨','매우나쁨']);
+        const pm25Grade = dustGrade(pm25,  [15, 35, 75],  ['좋음','보통','나쁨','매우나쁨']);
+
+        document.getElementById('wIcon').textContent  = WMO_ICON[code] ?? '🌡️';
+        document.getElementById('wTemp').textContent  = `${temp}°`;
+        document.getElementById('wDesc').textContent  = WMO[code] ?? '알 수 없음';
+        document.getElementById('wFeel').textContent  = `체감 ${feel}°C`;
+        document.getElementById('wPm10').textContent  = `${pm10} ㎍/㎥`;
+        document.getElementById('wPm25').textContent  = `${pm25} ㎍/㎥`;
+        document.getElementById('wPm10Badge').innerHTML  = dustBadge(pm10Grade);
+        document.getElementById('wPm25Badge').innerHTML  = dustBadge(pm25Grade);
+
+        // 역지오코딩으로 지역명
+        const geoRes  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ko`);
+        const geo     = await geoRes.json();
+        const city    = geo.address?.city || geo.address?.county || geo.address?.state || '현재 위치';
+        document.getElementById('wLoc').textContent = `📍 ${city}`;
+      } catch(e) {
+        document.getElementById('wDesc').textContent = '날씨 정보를 불러올 수 없습니다';
+      }
+    }, () => {
+      document.getElementById('wDesc').textContent = '위치 권한이 필요합니다';
+      document.getElementById('wLoc').textContent  = '';
+    });
+  }
+
+  // ── 펼침/접기 ──
+  function toggleExpand(wrapper) {
+    wrapper.classList.toggle('expanded');
+  }
+
+  // ── 완료 토글 ──
+  function toggleDone(cb) {
+    cb.closest('.task-item').classList.toggle('done', cb.checked);
+  }
+
+  // ── 모달 ──
+  function openModal() {
+    document.getElementById('addModal').classList.add('open');
+    setTimeout(() => document.getElementById('newTaskName').focus(), 50);
+  }
+  function closeModal() {
+    document.getElementById('addModal').classList.remove('open');
+    document.getElementById('taskForm').reset();
+  }
+
+  function addTask() {
+    const name     = document.getElementById('newTaskName').value.trim();
+    if (!name) { document.getElementById('newTaskName').focus(); return; }
+    const priority = document.getElementById('newPriority').value;
+    const category = document.getElementById('newCategory').value;
+    const assignee = document.getElementById('newAssignee').value.trim();
+    const due      = document.getElementById('newDue').value;
+    const note     = document.getElementById('newNote').value.trim();
+
+    const prioClass = { '높음': 'tag-high', '보통': 'tag-mid', '낮음': 'tag-low' }[priority];
+    const dueLabel  = due ? `~ ${due.slice(5).replace('-', '/')}` : '';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'task-wrapper';
+    wrapper.innerHTML = `
+      <div class="task-item" onclick="toggleExpand(this.parentElement)">
+        <input type="checkbox" onclick="event.stopPropagation()" onchange="toggleDone(this)" />
+        <div class="task-content">
+          <div class="task-name">${name}</div>
+          <div class="task-meta">
+            <span class="tag ${prioClass}">${priority}</span>
+            <span class="tag tag-cat">${category}</span>
+            <span class="tag tag-wip">대기</span>
+            ${dueLabel ? `<span class="task-due">${dueLabel}</span>` : ''}
+          </div>
+        </div>
+        <span class="chevron">›</span>
+      </div>
+      <div class="task-detail"><div class="detail-body">
+        <div class="detail-row">
+          ${assignee ? `<div class="detail-field"><span class="detail-label">담당자</span> ${assignee}</div>` : ''}
+          ${due      ? `<div class="detail-field"><span class="detail-label">마감일</span> ${due}</div>` : ''}
+          <div class="detail-field"><span class="detail-label">카테고리</span> ${category}</div>
+          <div class="detail-field"><span class="detail-label">상태</span> 대기</div>
+        </div>
+        <textarea class="detail-note" placeholder="메모를 추가하세요...">${note}</textarea>
+      </div></div>
+    `;
+
+    document.getElementById('taskList').prepend(wrapper);
+    // 추가 즉시 펼쳐서 보여주기
+    requestAnimationFrame(() => wrapper.classList.add('expanded'));
+    closeModal();
+  }
+</script>
+
+</body>
+</html>
